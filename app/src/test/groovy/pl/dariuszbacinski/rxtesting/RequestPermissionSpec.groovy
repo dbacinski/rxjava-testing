@@ -2,14 +2,19 @@ package pl.dariuszbacinski.rxtesting
 
 import android.Manifest
 import com.tbruyelle.rxpermissions.RxPermissions
+import org.junit.Rule
 import pl.polidea.robospock.RoboSpecification
 import rx.Observable
 import rx.observers.TestSubscriber
+import rx.plugins.RxImmediateSchedulersRule
 import rx.subjects.PublishSubject
 import rx.subjects.Subject
 
 class RequestPermissionSpec extends RoboSpecification {
     RxPermissions rxPermissionsMock = Mock(RxPermissions)
+
+    @Rule
+    RxImmediateSchedulersRule immediateSchedulersRule = new RxImmediateSchedulersRule()
 
     def "error when permission where not granted - observable"() {
         given:
@@ -20,8 +25,7 @@ class RequestPermissionSpec extends RoboSpecification {
         when:
             objectUnderTest.requestLocationPermission().subscribe(subscriber)
         then:
-            //subscriber.awaitTerminalEvent() //hangs
-            subscriber.assertError(SecurityException) //failed
+            subscriber.assertError(SecurityException)
     }
 
     def "error when permission where not granted - subject"() {
@@ -35,22 +39,6 @@ class RequestPermissionSpec extends RoboSpecification {
             booleanSubject.onNext(false)
             booleanSubject.onCompleted()
         then:
-            //subscriber.awaitTerminalEvent() //hangs
             subscriber.assertError(SecurityException)
-    }
-
-    def "error when permission where not granted - subject sleep"() {
-        given:
-            Subject<Boolean> booleanSubject = PublishSubject.create()
-            RequestPermission objectUnderTest = new RequestPermission(rxPermissionsMock)
-            rxPermissionsMock.request(Manifest.permission.ACCESS_COARSE_LOCATION) >> booleanSubject.asObservable()
-            TestSubscriber<String> subscriber = new TestSubscriber<>()
-        when:
-            objectUnderTest.requestLocationPermission().subscribe(subscriber)
-            sleep 10 //why this sleep helps?
-            booleanSubject.onNext(false)
-        then:
-            subscriber.awaitTerminalEvent()
-            subscriber.assertError(SecurityException) //ok
     }
 }
